@@ -1,22 +1,29 @@
 import os
 import re
 import pandas as pd
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 class FileManager:
-    def __init__(self, mapping_dict):
+    def __init__(self, mapping_dict, input_file):
         """
         mapping_dict: {key1: {key2: value}}
         key1 = Grp, key2=member_name, value=file_name
         """
         self.mapping_dict = mapping_dict
         self.member_dict = {grp: dict() for grp in mapping_dict.keys()}
+        self.input_file = input_file
+        logger.info("FileManager initialized successfully")
 
     def build_member_dict(self):
         """
         データ断面が異なることにより、ライブラリ名を参照せず、メンバー名を基準とする
         member_dict = {[Gr]:{[member_name]:[file_name]}
         """
+        logger.info("Building member dictionary")
         for key, folder in self.mapping_dict.items():
             for root, dirs, files in os.walk(folder):
                 for filename in files:
@@ -24,19 +31,25 @@ class FileManager:
                     if parts:
                         member_name = parts[-1].replace(".txt", "").replace(".cob", "")
                         self.member_dict[key][member_name] = os.path.join(root, filename)
+        logger.info("Member dictionary built successfully")
 
     def read_data(self, Grp, input_type):
-        match input_type:
-            case "copy_book":
-                return self.read_COPY_book(Grp=Grp)
-            case "XDBMCR":
-                return self.read_XDBMCR_data(Grp=Grp)
-            case "XDBREF":
-                return self.read_XDBREF_data(Grp=Grp)
+        logger.info("Reading data for group: %s and type: %s", Grp, input_type)
+        try:
+            match input_type:
+                case "copy_book":
+                    return self.read_COPY_book(Grp=Grp)
+                case "XDBMCR":
+                    return self.read_XDBMCR_data(Grp=Grp)
+                case "XDBREF":
+                    return self.read_XDBREF_data(Grp=Grp)
+            logger.info("Data read successfully for %s", Grp)
+        except Exception as e:
+            logger.error("Failed to read data for %s and %s", Grp, input_type, exc_info=True)
 
     def read_XDBMCR_data(self, Grp):
         Grp = str(Grp)
-        df = pd.read_excel("input.xlsx", sheet_name="XDBMCR")
+        df = pd.read_excel(self.input_file, sheet_name="XDBMCR")
         df = df.rename({"命令": "cmd"}, axis=1)
         df = df[["Gr", "COBOL", "cmd"]]
         # filter grp
@@ -50,7 +63,7 @@ class FileManager:
 
     def read_XDBREF_data(self, Grp):
         Grp = str(Grp)
-        df = pd.read_excel("input.xlsx", usecols=["Gr", "COBOL"], sheet_name="XDBREF（COBOL）")
+        df = pd.read_excel(self.input_file, usecols=["Gr", "COBOL"], sheet_name="XDBREF（COBOL）")
         # filter grp
         df = df[df["Gr"].astype(str).str.contains(Grp)]
         print("data size before remove duplicate:", df.shape[0])
@@ -61,7 +74,7 @@ class FileManager:
 
     def read_COPY_book(self, Grp):
         Grp = str(Grp)
-        df = pd.read_excel("input.xlsx", sheet_name="COPY句_COBOL")
+        df = pd.read_excel(self.input_file, sheet_name="COPY句_COBOL")
         df = df[["Gr", "COPY句", "COBOL"]]
         # filter grp
         df = df[df["Gr"].astype(str).str.contains(Grp)]

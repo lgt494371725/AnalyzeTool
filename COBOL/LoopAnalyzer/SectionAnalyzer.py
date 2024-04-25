@@ -4,6 +4,9 @@ import sys
 import copy
 from FileManager import FileManager
 import collections
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class SectionAnalyzer:
@@ -13,12 +16,14 @@ class SectionAnalyzer:
 
     @staticmethod
     def get_section(text, idx):
+        logger.debug("Getting section for index: %d", idx)
         """ Helper function to find a single section containing the idx line """
         start_idx = idx
         # Find the beginning of the section
         while idx > 0 and not SectionAnalyzer.is_section_line(text[start_idx]):
             start_idx -= 1
         if not SectionAnalyzer.is_section_line(text[start_idx]):
+            logger.error("Cannot find section start for line: %s", text[start_idx])
             raise RuntimeError("Can't find section for the line {}".format(text[start_idx]))
 
         # Find the end of the section
@@ -26,6 +31,7 @@ class SectionAnalyzer:
         while end_idx + 1 < len(text) and not SectionAnalyzer.is_section_line(text[end_idx + 1]):
             end_idx += 1
         section_name = SectionAnalyzer.get_section_name(text[start_idx])
+        logger.info("Section found: %s from index %d to %d", section_name, start_idx, end_idx)
         return section_name, (start_idx, end_idx)
 
     @staticmethod
@@ -95,4 +101,4 @@ class SectionAnalyzer:
 
         for start, end in sorted(section_ranges, key=lambda x: x[0]):
             sections.extend(self.text[start:end + 1])
-        return sections, parents_dict,
+        return sections, parents_dict

@@ -5,6 +5,9 @@ import copy
 import sys
 from FileManager import FileManager
 from SectionAnalyzer import SectionAnalyzer
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class LoopAnalyzer:
@@ -22,6 +25,7 @@ class LoopAnalyzer:
             nonlocal max_v, sec_val_dict
             cur_sum += sec_val_dict[sec]
             if cur_sum > 30:
+                logger.debug("infinite recursion found for section: %s", sec)
                 max_v = 99999
                 return
             if not self.parents_dict[sec]:
@@ -30,14 +34,19 @@ class LoopAnalyzer:
                 for parent in self.parents_dict[sec]:
                     find_max_sec_sum(parent, cur_sum)
 
-        sec_val_dict = {}
-        for sec, str_value in self.loop_dict.items():
-            sec_val_dict[sec] = self.get_loop_value(str_value)
-        # calc every section's value including its parents
-        max_v = -1
-        for sec in sec_val_dict:
-            find_max_sec_sum(sec, cur_sum=0)
-        return max_v
+        logger.info("Starting to calculate loop counts.")
+        try:
+            sec_val_dict = {}
+            for sec, str_value in self.loop_dict.items():
+                sec_val_dict[sec] = self.get_loop_value(str_value)
+            # calc every section's value including its parents
+            max_v = -1
+            for sec in sec_val_dict:
+                find_max_sec_sum(sec, cur_sum=0)
+            return max_v
+            logger.info("Loop counts calculated successfully.")
+        except Exception as e:
+            logger.exception("Failed to calculate loop counts.")
 
     def get_loop_value(self, string):
         if not string:

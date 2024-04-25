@@ -1,0 +1,5 @@
+COBOL/LoopAnalyzer/para.py
+*.log
+*.tmp
+COBOL/LoopAnalyzer/not_found_list.txt
+COBOL/LoopAnalyzer/results.xlsx
